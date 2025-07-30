@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ET-Flow: Equivariant Flow-Matching for Molecular Conformer Generation</title>
+
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+            }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+    </script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background-color: #fdfdfd;
+            font-size: 16px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            background: #fff;
+            border-bottom: 1px solid #e1e8ed;
+            padding: 20px 0;
+            margin-bottom: 40px;
+        }
+
+        .site-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1a1a1a;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .site-title:hover {
+            color: #0066cc;
+        }
+
+        /* Main content */
+        main {
+            margin-bottom: 60px;
+        }
+
+        /* Article title */
+        .article-title {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1.2;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+        }
+
+        /* Article meta */
+        .article-meta {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin: 40px 0 20px 0;
+            color: #1a1a1a;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 32px 0 16px 0;
+            color: #1a1a1a;
+        }
+
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 24px 0 12px 0;
+            color: #1a1a1a;
+        }
+
+        p {
+            margin-bottom: 16px;
+            text-align: justify;
+            hyphens: auto;
+        }
+
+        /* Links */
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 16px 0;
+            padding-left: 24px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Code */
+        code {
+            background: #f6f8fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 14px;
+        }
+
+        /* Blockquotes */
+        blockquote {
+            margin: 24px 0;
+            padding: 16px 20px;
+            background: #f8f9fa;
+            border-left: 4px solid #0066cc;
+            font-style: italic;
+        }
+
+        /* Figures and images */
+        figure {
+            margin: 32px 0;
+            text-align: center;
+        }
+
+        figure img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #e1e8ed;
+            border-radius: 6px;
+        }
+
+        figcaption {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #6c757d;
+            font-style: italic;
+            text-align: center;
+        }
+
+        /* Table of contents */
+        .toc {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 32px 0;
+        }
+
+        .toc h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+
+        .toc > ul > li {
+            margin-bottom: 8px;
+        }
+
+        .toc ul ul {
+            margin-top: 8px;
+            padding-left: 20px;
+        }
+
+        .toc a {
+            color: #495057;
+            text-decoration: none;
+            display: block;
+            padding: 4px 0;
+        }
+
+        .toc a:hover {
+            color: #0066cc;
+        }
+
+        /* Math */
+        .MathJax {
+            font-size: 1em !important;
+        }
+
+        mjx-container[jax="CHTML"][display="true"] {
+            margin: 20px 0 !important;
+        }
+
+        /* Abstract/Summary box */
+        .abstract {
+            background: #f0f8ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+
+        .abstract h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #0066cc;
+        }
+
+        /* Strong emphasis */
+        strong {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid #e1e8ed;
+            padding: 40px 0;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 16px;
+            }
+            
+            .article-title {
+                font-size: 28px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            h2 {
+                font-size: 20px;
+            }
+            
+            h3 {
+                font-size: 18px;
+            }
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <a href="#" class="site-title">ET-FLOW</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <article>
+                <h1 class="article-title">ET-Flow: Equivariant Flow-Matching for Molecular Conformer Generation</h1>
+                
+                <div class="article-meta">
+                    <span>Published on July 30, 2025</span> • 
+                    <span>By Kadir ALTUG</span> • 
+                    <span>15 min read</span>
+                </div>
+
+                <div class="abstract">
+                    <h3>Abstract</h3>
+                    <p>This blog post explores ET-Flow, a novel machine learning approach for generating 3D molecular conformers using flow matching and equivariant architectures. I'll break down the complex concepts into understandable terms and examine why this method represents a significant advancement in computational chemistry and drug discovery.</p>
+                </div>
+
+                <div class="toc">
+                    <h3>Table of Contents</h3>
+                    <ul>
+                        <li><a href="#introduction">1. Introduction</a></li>
+                        <li><a href="#background">2. Background: Used Tools</a></li>
+                        <li><a href="#et-flow-method">3. ET-Flow: How It Works</a>
+                            <ul>
+                                <li><a href="#flow-matching">Flow Matching: The Core Idea</a></li>
+                                <li><a href="#alignment">Alignment: Making the Path Straighter</a></li>
+                                <li><a href="#stochastic-sampling">Stochastic Sampling</a></li>
+                                <li><a href="#chirality-correction">Chirality Correction</a></li>
+                                <li><a href="#architecture">The ET-Flow Architecture</a></li>
+                            </ul>
+                        </li>
+                        <li><a href="#experiments">4. Experiments and Results</a></li>
+                        <li><a href="#conclusion">5. Conclusion</a></li>
+                        <li><a href="#references">References</a></li>
+                    </ul>
+                </div>
+
+                <section id="introduction">
+                    <h1>Introduction</h1>
+                    <p>Imagine you want to build something, like a LEGO model. You have all the pieces, but how they fit together can change the final shape. Molecules are a bit like that. They have a fixed set of atoms (the LEGO pieces), but how these atoms are arranged in 3D space can change a lot. These different 3D arrangements are called <strong>conformers</strong>.</p>
+                    
+                    <p>Why are conformers important? Because a molecule's 3D shape affects almost everything about it – how it works in our bodies, how it reacts with other chemicals, and even its physical properties. For example, in making new medicines, finding the right 3D shape of a drug molecule is super important. It helps the drug fit perfectly into its target in the body, like a key in a lock.</p>
+                    
+                    <p>But finding these shapes is hard. Molecules can twist and turn in many ways, creating countless possible conformers. Scientists are especially interested in <strong>low-energy conformers</strong>, which are the most stable and common shapes a molecule will naturally take. Traditional ways to find these shapes can be very slow or not very accurate, especially for bigger molecules.</p>
+                    
+                    <p>Recently, machine learning has shown great promise in this area. Many new methods use something called <strong>diffusion models</strong>. These models learn to create new shapes by slowly adding noise to a simple starting point until it becomes a complex molecular shape. However, these diffusion models can sometimes be slow to train and use, and they might not always be as precise as needed.</p>
+                    
+                    <p>This is where <strong>ET-Flow</strong> comes in. In a new paper, researchers introduce ET-Flow, a clever and efficient method for generating these important 3D molecular shapes. ET-Flow uses a different idea called <strong>flow matching</strong>, combined with special properties like <strong>equivariance</strong> and a <strong>harmonic prior</strong>. These big words might sound complicated, but they help the model understand and create molecular shapes in a very smart way. The goal of this blog post is to explain what ET-Flow is, how it works, and why it's a big step forward in creating molecular shapes.</p>
+                </section>
+
+                <section id="background">
+                    <h1>Background: Used Tools</h1>
+                    <p>Before diving into ET-Flow, let's understand some important ideas that it builds upon.</p>
+                    
+                    <h2 id="diffusion-models">Diffusion Models: Learning by Undoing Noise</h2>
+                    <p>Imagine you have a clear picture, and you slowly add noise to it until it's just static. A diffusion model works backward: it learns to remove this noise step-by-step to go from static back to a clear picture. In the context of molecular conformers, it learns to turn a simple, noisy 3D arrangement of atoms into a realistic molecular conformer. These models have been very popular for generating new data, but they can be slow because they need many steps to remove all the noise.</p>
+                    
+                    <h2 id="flow-matching-concept">Flow Matching: A Smoother Path to Creation</h2>
+                    <p>Flow matching is a newer and often more efficient way to generate data. Instead of slowly removing noise, it learns a direct "path" or "flow" that transforms a simple starting distribution (like a cloud of points) into the complex distribution of real molecular shapes. Think of it like this: instead of taking many small steps to clean a noisy image, flow matching learns one smooth, continuous movement from noise to image. This makes the process faster and often simpler to train.</p>
+                    
+                    <h2 id="molecular-conformers">Molecular Conformer Generation: Finding the Right Shape</h2>
+                    <p>As discussed earlier, molecules can have many different 3D shapes, or conformers. Finding these shapes is crucial for understanding how molecules behave. Traditional methods often rely on complex calculations or rules. Machine learning methods, especially those using diffusion or flow matching, aim to generate these shapes more efficiently and accurately. The challenge is to create shapes that are not only diverse but also physically realistic and low in energy.</p>
+                    
+                    <h2 id="equivariance">Equivariant Architectures: Respecting Molecular Symmetry</h2>
+                    <p>Molecules have a natural symmetry. If you rotate a molecule in space, it's still the same molecule, just viewed from a different angle. This property is called <strong>equivariance</strong>. An equivariant model is designed to respect this symmetry. This means if you rotate the input molecule, the model's output will also be rotated in the same way. This is very important for molecular modeling because it helps the model learn more efficiently and produce more accurate, physically meaningful results. It's like teaching a computer to understand that a chair is still a chair, no matter which way it's turned.</p>
+                </section>
+
+                <section id="et-flow-method">
+                    <h1>ET-Flow: How It Works</h1>
+                    <p>ET-Flow combines several smart ideas to generate molecular conformers. Let's break down its main parts.</p>
+                    
+                    <h2 id="flow-matching">Flow Matching: The Core Idea</h2>
+                    <p>At its heart, ET-Flow uses <strong>flow matching</strong>. Imagine you have a simple starting point, like a random cloud of atoms (the researchers call this the <strong>base distribution</strong>, or $\rho_0$). You want to transform this cloud into a real, low-energy molecular shape (the <strong>target distribution</strong>, or $\rho_1$). Flow matching helps the model learn a continuous path, or "flow," that connects these two points.</p>
+                    
+                    <p>This path is described by something called a <strong>vector field</strong> ($v_t(x)$). Think of the vector field as a set of arrows at every point in space, showing you which way to move to get from the starting cloud to the final molecule. The model learns to predict these arrows.</p>
+                    
+                    <p>To make this path, ET-Flow uses a clever trick: it interpolates between a starting molecule ($x_0$) from the base distribution and a target molecule ($x_1$) from the real data. This interpolation creates a temporary molecule ($x_t$) at any given time ($t$) along the path. For a simple linear path, the formula looks like this:</p>
+                    
+                    $$I_t(x_0, x_1) = \alpha_t x_1 + \beta_t x_0$$
+                    
+                    <p>Here, $\alpha_t$ and $\beta_t$ are values that change with time $t$. For a straight line, $\alpha_t = t$ and $\beta_t = 1 - t$. This means at $t = 0$, you are at $x_0$, and at $t = 1$, you are at $x_1$.</p>
+                    
+                    <p>From this interpolation, the researchers can figure out the ideal vector field that moves along this path. The model then learns to predict this ideal vector field. The goal is to make the model's predicted vector field ($v_\theta(x)$) as close as possible to the true vector field. This is done by minimizing a <strong>loss function</strong>:</p>
+                    
+                    $$L = \mathbb{E}\left[\|v(t, x) - v_\theta(t, x)\|^2\right]$$
+                    
+                    <p>This formula basically says: "The researchers want the difference between the true direction ($v(t, x)$) and the model's predicted direction ($v_\theta(t, x)$) to be as small as possible." By minimizing this, the model learns to guide the atoms from a random state to a stable molecular conformer.</p>
+                    
+                    <figure>
+                        <img src="./et_flow_images/et_flow_overview.png" alt="ET-Flow Overview" />
+                        <figcaption><strong>Figure 1:</strong> Overview of ET-Flow's flow matching process. The model learns a vector field ($v_t$) to guide a starting molecule ($x_0$) to a target molecule ($x_1$) along a continuous path.</figcaption>
+                    </figure>
+                    
+                    <h2 id="alignment">Alignment: Making the Path Straighter</h2>
+                    <p>To make the flow matching process even better, ET-Flow uses something called <strong>rotational alignment</strong>. Imagine you have two puzzle pieces that you want to fit together. If they are both rotated randomly, it will be hard. But if you rotate one to match the other, it becomes much easier. In ET-Flow, this means aligning the starting random molecular shape ($\rho_0$, from the harmonic prior) with the target real molecular shape ($\rho_1$, from the data).</p>
+                    
+                    <p>This alignment uses a method called the <strong>Kabsch algorithm</strong>. By rotating the molecules to match each other as much as possible, the path the model needs to learn becomes shorter and simpler. This helps the model learn faster and more accurately, without needing a lot of extra computing power.</p>
+                    
+                    <h2 id="stochastic-sampling">Stochastic Sampling: Adding a Little Randomness for Better Results</h2>
+                    <p>During the process of generating a molecule, ET-Flow sometimes adds a little bit of controlled randomness, especially towards the end of the generation process (when $t$ is between 0.8 and 1.0). This is called <strong>stochastic sampling</strong>. You might think adding randomness would make things worse, but it actually helps in two important ways:</p>
+                    
+                    <ul>
+                        <li><strong>Prevents Drifting:</strong> It stops the model from getting stuck in areas where many similar shapes are generated, which can make the results less diverse.</li>
+                        <li><strong>Improves Quality:</strong> By exploring slightly different paths, the model can find even better and more accurate molecular shapes.</li>
+                    </ul>
+                    
+                    <p>This small injection of noise helps the model to produce a wider variety of high-quality conformers.</p>
+                    
+                    <figure>
+                        <img src="./et_flow_images/stochastic_sampling.png" alt="Stochastic Sampling in ET-Flow" />
+                        <figcaption><strong>Figure 2:</strong> Stochastic sampling procedure. Noise is added to the molecular positions to create a slightly perturbed state, leading to more diverse and accurate samples.</figcaption>
+                    </figure>
+                    
+                    <h2 id="chirality-correction">Chirality Correction: Getting the Handedness Right</h2>
+                    <p>Some molecules can exist in two forms that are mirror images of each other, like your left and right hands. This property is called <strong>chirality</strong>, and these mirror-image forms are called <strong>enantiomers</strong>. For drug molecules, often only one of these forms works correctly in the body, while the other might be inactive or even harmful. So, it's very important that the generated molecular shapes have the correct "handedness" or chirality.</p>
+                    
+                    <figure>
+                        <img src="./et_flow_images/molecular_conformers.png" alt="Molecular Conformers and Chirality" />
+                        <figcaption><strong>Figure 3:</strong> Examples of molecular conformers and the concept of chirality with R and S enantiomers. ET-Flow ensures the correct handedness of generated molecules.</figcaption>
+                    </figure>
+                    
+                    <p>ET-Flow uses a simple but effective trick to make sure the chirality is correct. After generating a conformer, it checks its "handedness" against what it should be. If it's wrong, the model simply flips the molecule along one axis to correct it. This is a quick and efficient way to ensure the generated molecules are chemically accurate.</p>
+                    
+                    <h2 id="architecture">The ET-Flow Architecture: Building the Model</h2>
+                    <p>ET-Flow consists of two primary components designed to generate accurate molecular conformers directly in 3D Cartesian space:</p>
+                    
+                    <ol>
+                        <li>
+                            <strong>Representation Module (Equivariant Transformer):</strong>
+                            This module processes the molecular graph, including atomic types, connectivity, and initial positions, to produce a contextualized representation of each atom. It leverages a <strong>SE(3)-equivariant transformer</strong>, which ensures the model respects spatial symmetries such as rotations and translations. This allows ET-Flow to capture spatial relationships and long-range interactions effectively while maintaining physical consistency. 
+                        </li>
+                        <li>
+                            <strong>Equivariant Vector Output Module:</strong>
+                            Using the latent representations from the transformer, this module predicts a <strong>time-dependent vector field</strong> over atomic positions. The vector field describes how each atom should move over time to transition from a random initialization to a realistic molecular conformer. The predicted field is also equivariant, ensuring outputs are consistent with molecular symmetries. 
+                        </li>
+                    </ol>
+                    
+                    <p>These two modules are trained jointly using the <strong>flow matching objective</strong>, which learns the transformation path between noise and conformers without requiring a noisy forward process like diffusion models. Additionally, ET-Flow incorporates a <strong>harmonic prior</strong> that encourages chemically valid bond lengths and angles, improving the plausibility of generated structures.</p>
+                    
+                    <figure>
+                        <img src="./et_flow_images/et_flow_architecture.png" alt="ET-Flow Architecture" />
+                        <figcaption><strong>Figure 4:</strong> The two main components of the ET-Flow architecture: the Representation Module (SE(3)-equivariant transformer) and the Equivariant Vector Output Module.</figcaption>
+                    </figure>
+                </section>
+
+                <section id="experiments">
+                    <h1>Experiments and Results: How Well Does ET-Flow Work?</h1>
+                    <p>To see how good ET-Flow is, the researchers tested it on different sets of molecules and compared it to other methods. They looked at several key aspects:</p>
+                    
+                    <h2>How Accurate are the Shapes? (RMSD-based Metrics)</h2>
+                    <p>The researchers used a measure called <strong>RMSD (Root Mean Square Deviation)</strong> to see how close the generated shapes were to the real, known shapes of molecules. A lower RMSD means the generated shape is more accurate. They also looked at <strong>Coverage</strong> (how many of the real shapes the model can find) and <strong>Precision</strong> (how many of the shapes the model generates are actually correct and low-energy).</p>
+                    
+                    <p>ET-Flow showed really good results here. It was better than many older methods and even as good as, or better than, the previous best method called MCF. What's impressive is that ET-Flow achieved this with a much smaller model (fewer parameters), meaning it's more efficient.</p>
+                    
+                    <figure>
+                        <img src="./et_flow_images/rmsd.PNG" alt="ET-Flow RMSD Results" />
+                        <figcaption><strong>Figure 5:</strong> Molecule conformer generation results on GEOM-DRUGS (δ = 0.75Å). ET-Flow-SS is ET-Flow with stochastic sampling and ET-Flow-SO(3) uses the SO(3) architecture for chirality correction.</figcaption>
+                    </figure>
+
+                    <h2>How Chemically Realistic are the Shapes? (Chemical Property-based Metrics)</h2>
+                    <p>Besides just the shape, it's important that the generated molecules are chemically correct. The researchers checked properties like the molecule's <strong>energy (E)</strong>, <strong>dipole moment (μ)</strong>, and <strong>HOMO-LUMO gap (Δε)</strong>. These properties tell us a lot about how a molecule will behave.</p>
+                    
+                    <p>Again, ET-Flow performed very well. It showed significant improvements in predicting these chemical properties accurately compared to other methods. This means the molecules generated by ET-Flow are not just geometrically similar to real ones, but also chemically sound.</p>
+                    
+                    <figure>
+                        <img src="./et_flow_images/homo.PNG" alt="ET-Flow Chemical Properties" />
+                        <figcaption><strong>Figure 6:</strong> Median averaged errors of ensemble properties between sampled and generated conformers (E, Δε, E_min in kcal/mol, and μ in debye).</figcaption>
+                    </figure>
+
+                    <h2>Speed and Efficiency</h2>
+                    <p>One of the big advantages of ET-Flow is its speed. It can generate high-quality molecular shapes using very few steps. Even with just 5 steps, ET-Flow still performed better in terms of precision than many other methods that needed many more steps. This makes ET-Flow very useful for tasks where you need to generate many molecular shapes quickly, like in drug discovery.</p>
+                    
+                    <figure>
+                        <img src="./et_flow_images/inference.PNG" alt="ET-Flow Inference Speed" />
+                        <figcaption><strong>Figure 7:</strong> Showcases the ability for ET-Flow to generate quality samples with fewer sampling steps.</figcaption>
+                    </figure>
+                </section>
+
+                <section id="conclusion">
+                    <h1>Conclusion</h1>
+                    <p>ET-Flow represents a significant step forward in molecular conformer generation. It cleverly combines <strong>flow matching</strong>, <strong>equivariant architectures</strong>, and a <strong>harmonic prior</strong> to create a method that is both highly accurate and computationally efficient.</p>
+                    
+                    <p>What makes ET-Flow particularly exciting is that it achieves state-of-the-art performance while being lighter and faster than previous methods. This efficiency makes it practical for real-world applications in drug discovery, where researchers need to generate and analyze thousands of molecular conformers quickly.</p>
+                    
+                    <p>The success of ET-Flow demonstrates the power of thoughtful architectural design in machine learning for scientific applications. By respecting the physical symmetries of molecules and using efficient flow-based generation, the researchers have created a tool that could accelerate molecular design and drug discovery efforts.</p>
+                    
+                    <p>As they continue to push the boundaries of what's possible with AI in science, methods like ET-Flow show us how deep understanding of both the domain (chemistry) and the technology (machine learning) can lead to truly impactful innovations.</p>
+                </section>
+
+                <section id="references">
+                    <h1>References</h1>
+                    <ol>
+                        <li>Hassan, M., Shenoy, N., Lee, J., Stark, H., Thaler, S., & Beaini, D. (2024). <em>ET-Flow: Equivariant Flow-Matching for Molecular Conformer Generation</em>. arXiv preprint arXiv:2410.22388. <a href="https://arxiv.org/abs/2410.22388" target="_blank">https://arxiv.org/abs/2410.22388</a></li>
+                        
+                        <li>Lipman, Y., Chen, R. T. Q., & Blei, D. M. (2022). <em>Flow Matching for Generative Modeling</em>. International Conference on Learning Representations (ICLR). <a href="https://arxiv.org/abs/2210.02747" target="_blank">https://arxiv.org/abs/2210.02747</a></li>
+                        
+                        <li>Albergo, M. S., Boffi, N. M., & Vanden-Eijnden, E. (2023). <em>Stochastic Interpolants: A Unifying Framework for Flows and Diffusions</em>. arXiv preprint arXiv:2303.08797. <a href="https://arxiv.org/abs/2303.08797" target="_blank">https://arxiv.org/abs/2303.08797</a></li>
+                        
+                        <li>Kabsch, W. (1976). <em>A solution for the best rotation to relate two sets of vectors</em>. Acta Crystallographica Section A: Crystal Physics, Diffraction, Theoretical and General Crystallography, 32(5), 922–923.</li>
+                    </ol>
+                </section>
+            </article>
+        </div>
+    </main>
+
+    
+</body>
+</html>
